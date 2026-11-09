@@ -14,12 +14,6 @@ if (!localStorage.getItem('shallan_notifs')) {
     ]));
 }
 
-if (!localStorage.getItem('shallan_chat_messages')) {
-    localStorage.setItem('shallan_chat_messages', JSON.stringify([
-        { id: 1, author: "أحمد صبري", role: "طالب", grade: "الصف الثاني الثانوي", message: "أهلاً بكم في شات المنتدى التعليمي الخاص!", image: null, time: "09/11/2026 - 12:05:00 ص" }
-    ]));
-}
-
 if (!localStorage.getItem('shallan_activity_logs')) {
     localStorage.setItem('shallan_activity_logs', JSON.stringify([]));
 }
@@ -203,7 +197,6 @@ function checkActiveSession() {
         `;
     }
 }
-
 function openProfileModal() {
     let loggedUser = JSON.parse(sessionStorage.getItem('shallan_logged_user'));
     if (!loggedUser) return;
@@ -328,6 +321,7 @@ function clearActivityLogs() {
         alert("تم تفريغ السجل بنجاح.");
     }
 }
+
 function renderAdminData() {
     const users = JSON.parse(localStorage.getItem('shallan_users')) || [];
     const pending = users.filter(u => u.status === 'pending');
@@ -409,8 +403,7 @@ function handleRegister() {
     const confirmPassword = document.getElementById('regConfirmPassword').value.trim();
     const whatsapp = document.getElementById('regWhatsapp').value.trim();
     const parent = document.getElementById('regParentPhone').value.trim();
-
-    if (!fullname || !username || !password || !confirmPassword || !whatsapp || !parent) {
+        if (!fullname || !username || !password || !confirmPassword || !whatsapp || !parent) {
         alert("يرجى ملء كافة حقول التسجيل بدقة!"); return;
     }
 
@@ -554,7 +547,6 @@ function renderBooksSection() {
         `;
     }
 }
-
 function sendChatMessage() {
     const messageText = document.getElementById('chatMessageInput').value.trim();
     const imageInput = document.getElementById('chatImageInput');
@@ -570,77 +562,81 @@ function sendChatMessage() {
     let authorRole = isAdminOpen ? "أدمن" : (loggedUser ? loggedUser.accountType : "زائر");
     let authorGrade = loggedUser && loggedUser.accountType === 'طالب' ? loggedUser.studentGrade : (isAdminOpen ? 'معلم عام' : '');
 
-    let chatMessages = JSON.parse(localStorage.getItem('shallan_chat_messages')) || [];
     let now = new Date();
     let timeString = now.toLocaleDateString('ar-EG') + ' - ' + now.toLocaleTimeString('ar-EG');
 
-    if (imageInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            let base64Image = e.target.result;
-            chatMessages.unshift({
-                id: Date.now(),
-                author: authorName,
-                role: authorRole,
-                grade: authorGrade,
-                message: messageText,
-                image: base64Image,
-                time: timeString
-            });
-            localStorage.setItem('shallan_chat_messages', JSON.stringify(chatMessages));
-            document.getElementById('chatMessageInput').value = '';
-            imageInput.value = '';
-            document.getElementById('fileChosenLabel').innerText = "اختر صورة مرفقة";
-            renderChatMessages();
-            showToast("رسالة جديدة في المنتدى", `${authorName} أضاف رسالة جديدة.`);
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-    } else {
-        chatMessages.unshift({
-            id: Date.now(),
+    const saveToFirestore = (imageUrl = null) => {
+        db.collection("chat_messages").add({
             author: authorName,
             role: authorRole,
             grade: authorGrade,
             message: messageText,
-            image: null,
-            time: timeString
+            image: imageUrl,
+            time: timeString,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+            document.getElementById('chatMessageInput').value = '';
+            imageInput.value = '';
+            document.getElementById('fileChosenLabel').innerText = "اختر صورة مرفقة";
+            showToast("رسالة جديدة في المنتدى", `${authorName} أضاف رسالة جديدة.`);
+        })
+        .catch((error) => {
+            console.error("خطأ في إرسال الرسالة: ", error);
+            alert("تعذر إرسال الرسالة، تحقق من الإنترنت أو قواعد الأمان.");
         });
-        localStorage.setItem('shallan_chat_messages', JSON.stringify(chatMessages));
-        document.getElementById('chatMessageInput').value = '';
-        document.getElementById('fileChosenLabel').innerText = "اختر صورة مرفقة";
-        renderChatMessages();
-        showToast("رسالة جديدة في المنتدى", `${authorName} أضاف رسالة جديدة.`);
-    }
-}
+    };
 
-function deleteChatMessage(id) {
-    if (confirm("هل أنت متأكد من حذف هذه الرسالة من الشات؟")) {
-        let chatMessages = JSON.parse(localStorage.getItem('shallan_chat_messages')) || [];
-        chatMessages = chatMessages.filter(m => m.id !== id);
-        localStorage.setItem('shallan_chat_messages', JSON.stringify(chatMessages));
-        renderChatMessages();
+    if (imageInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            saveToFirestore(e.target.result);
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+    } else {
+        saveToFirestore(null);
     }
 }
 
 function renderChatMessages() {
-    const chatMessages = JSON.parse(localStorage.getItem('shallan_chat_messages')) || [];
     const container = document.getElementById('chatMessagesContainer');
     if (!container) return;
 
     let isAdminOpen = !document.getElementById('adminPanel').classList.contains('hidden');
 
-    container.innerHTML = chatMessages.map(m => `
-        <div style="background: var(--item-bg); border: 1px solid var(--input-border); padding: 12px 15px; border-radius: 12px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <div>
-                    <span style="font-weight: 700; color: var(--table-th-color); font-size: 0.95rem;"><i class="fas fa-user-circle"></i> ${m.author}</span>
-                    <span style="padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: ${m.role === 'أدمن' ? '#3b82f6' : (m.role === 'معلم' ? '#f59e0b' : '#10b981')}; color: white; margin-right: 6px;">${m.role} ${m.grade ? '(' + m.grade + ')' : ''}</span>
+    db.collection("chat_messages").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+        let chatMessages = [];
+        snapshot.forEach((doc) => {
+            chatMessages.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (chatMessages.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #888;">لا توجد رسائل في الشات بعد.</p>';
+            return;
+        }
+
+        container.innerHTML = chatMessages.map(m => `
+            <div style="background: var(--item-bg); border: 1px solid var(--input-border); padding: 12px 15px; border-radius: 12px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div>
+                        <span style="font-weight: 700; color: var(--table-th-color); font-size: 0.95rem;"><i class="fas fa-user-circle"></i> ${m.author}</span>
+                        <span style="padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: ${m.role === 'أدمن' ? '#3b82f6' : (m.role === 'معلم' ? '#f59e0b' : '#10b981')}; color: white; margin-right: 6px;">${m.role} ${m.grade ? '(' + m.grade + ')' : ''}</span>
+                    </div>
+                    <small style="color: #0284c7; font-weight: 600; font-size: 0.8rem;"><i class="far fa-clock"></i> ${m.time}</small>
                 </div>
-                <small style="color: #0284c7; font-weight: 600; font-size: 0.8rem;"><i class="far fa-clock"></i> ${m.time}</small>
+                ${m.message ? `<p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap;">${m.message}</p>` : ''}
+                ${m.image ? `<div style="margin-top: 8px;"><img src="${m.image}" alt="صورة مرفقة" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--input-border); display: block;"></div>` : ''}
+                ${isAdminOpen ? `<div style="text-align: left; margin-top: 8px;"><button class="btn btn-danger btn-sm" onclick="deleteFirebaseChatMessage('${m.id}')"><i class="fas fa-trash-alt"></i> حذف الرسالة</button></div>` : ''}
             </div>
-            ${m.message ? `<p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap;">${m.message}</p>` : ''}
-            ${m.image ? `<div style="margin-top: 8px;"><img src="${m.image}" alt="صورة مرفقة" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--input-border); display: block;"></div>` : ''}
-            ${isAdminOpen ? `<div style="text-align: left; margin-top: 8px;"><button class="btn btn-danger btn-sm" onclick="deleteChatMessage(${m.id})"><i class="fas fa-trash-alt"></i> حذف الرسالة</button></div>` : ''}
-        </div>
-    `).join('') || '<p style="text-align: center; color: #888;">لا توجد رسائل في الشات بعد.</p>';
+        `).join('');
+    });
 }
+
+function deleteFirebaseChatMessage(id) {
+    if (confirm("هل أنت متأكد من حذف هذه الرسالة من الشات؟")) {
+        db.collection("chat_messages").doc(id).delete().catch((error) => {
+            console.error("خطأ في الحذف: ", error);
+        });
+    }
+                }
+            
