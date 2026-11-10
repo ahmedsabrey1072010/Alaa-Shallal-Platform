@@ -1,6 +1,3 @@
-// الاتصال بسيرفر Socket.io المحلي الذي يعمل على التابلت (Termux)
-const socket = io('http://localhost:3000');
-
 function hashPassword(password) {
     return btoa(encodeURIComponent(password) + "_secure_hash_salt");
 }
@@ -200,6 +197,7 @@ function checkActiveSession() {
         `;
     }
 }
+
 function openProfileModal() {
     let loggedUser = JSON.parse(sessionStorage.getItem('shallan_logged_user'));
     if (!loggedUser) return;
@@ -357,7 +355,8 @@ function renderAdminData() {
     }
 
     renderAdminNotificationsList();
-    }
+}
+
 function renderApprovedTable(approvedList) {
     document.getElementById('approvedUsersTable').innerHTML = approvedList.map(u => `
         <tr>
@@ -452,26 +451,14 @@ function addNotification() {
     notifs.unshift(newNotif);
     localStorage.setItem('shallan_notifs', JSON.stringify(notifs));
 
-    socket.emit('broadcastNotification', newNotif);
-
     document.getElementById('notifTitle').value = '';
     document.getElementById('notifContent').value = '';
     renderAdminData();
     renderNotifications();
 
     showToast("إشعار جديد تم نشره!", title);
-    alert("تم نشر الإشعار بنجاح وإرساله للجميع ليف (Live)!");
+    alert("تم نشر الإشعار بنجاح!");
 }
-
-socket.on('broadcastNotification', (notif) => {
-    let notifs = JSON.parse(localStorage.getItem('shallan_notifs')) || [];
-    if (!notifs.some(n => n.id === notif.id)) {
-        notifs.unshift(notif);
-        localStorage.setItem('shallan_notifs', JSON.stringify(notifs));
-    }
-    renderNotifications();
-    showToast("إشعار جديد وصلك!", notif.title);
-});
 
 function deleteNotification(id) {
     if (confirm("هل أنت متأكد من حذف هذا الإشعار نهائياً؟")) {
@@ -593,7 +580,7 @@ function sendChatMessage() {
             time: timeString
         };
 
-        socket.emit('chatMessage', messageData);
+        // هنا مكان ربط الإرسال لـ Supabase لاحقاً
 
         document.getElementById('chatMessageInput').value = '';
         imageInput.value = '';
@@ -612,36 +599,6 @@ function sendChatMessage() {
     }
 }
 
-socket.on('chatMessage', (msg) => {
-    let container = document.getElementById('chatMessagesContainer');
-    if (!container) return;
-
-    if (container.innerHTML.includes('لا توجد رسائل في الشات بعد.')) {
-        container.innerHTML = '';
-    }
-
-    let isAdminOpen = !document.getElementById('adminPanel').classList.contains('hidden');
-
-    const msgElement = document.createElement('div');
-    msgElement.id = 'msg_elem_' + msg.id;
-    msgElement.style.cssText = "background: var(--item-bg); border: 1px solid var(--input-border); padding: 12px 15px; border-radius: 12px; margin-bottom: 12px;";
-    
-    msgElement.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <div>
-                <span style="font-weight: 700; color: var(--table-th-color); font-size: 0.95rem;"><i class="fas fa-user-circle"></i> ${msg.author}</span>
-                <span style="padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: ${msg.role === 'أدمن' ? '#3b82f6' : (msg.role === 'معلم' ? '#f59e0b' : '#10b981')}; color: white; margin-right: 6px;">${msg.role} ${msg.grade ? '(' + msg.grade + ')' : ''}</span>
-            </div>
-            <small style="color: #0284c7; font-weight: 600; font-size: 0.8rem;"><i class="far fa-clock"></i> ${msg.time}</small>
-        </div>
-        ${msg.message ? `<p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap;">${msg.message}</p>` : ''}
-        ${msg.image ? `<div style="margin-top: 8px;"><img src="${msg.image}" alt="صورة مرفقة" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--input-border); display: block;"></div>` : ''}
-        ${isAdminOpen ? `<div style="text-align: left; margin-top: 8px;"><button class="btn btn-danger btn-sm" onclick="deleteLocalChatMessage('${msg.id}')"><i class="fas fa-trash-alt"></i> حذف الرسالة</button></div>` : ''}
-    `;
-
-    container.insertBefore(msgElement, container.firstChild);
-});
-
 function renderChatMessages() {
     const container = document.getElementById('chatMessagesContainer');
     if (!container) return;
@@ -656,4 +613,4 @@ function deleteLocalChatMessage(id) {
         if (elem) elem.remove();
         showToast("حذف رسالة", "تمت إزالة الرسالة بنجاح.");
     }
-            }
+}
