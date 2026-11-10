@@ -1,3 +1,6 @@
+// الاتصال بسيرفر Socket.io المحلي الذي يعمل على التابلت (Termux)
+const socket = io('http://localhost:3000');
+
 function hashPassword(password) {
     return btoa(encodeURIComponent(password) + "_secure_hash_salt");
 }
@@ -10,7 +13,7 @@ if (!localStorage.getItem('shallan_users')) {
 
 if (!localStorage.getItem('shallan_notifs')) {
     localStorage.setItem('shallan_notifs', JSON.stringify([
-        { id: 1, title: "أهلاً بكم في المنصة", content: "تم افتتاح منصة الأستاذ علاء شلال التعليمية الرسمية.", time: "09/11/2026 - 12:00:00 ص" }
+        { id: 1, title: "أهلاً بكم في منصة الأستاذ علاء شلال", content: "تم افتتاح منصة الأستاذ علاء شلال التعليمية الرسمية.", time: "09/11/2026 - 12:00:00 ص" }
     ]));
 }
 
@@ -192,7 +195,7 @@ function checkActiveSession() {
         document.getElementById('chatMessagesContainer').innerHTML = `
             <div style="text-align: center; padding: 20px; color: #b45309; background: #fffbeb; border-radius: 10px; border: 1px dashed #f59e0b;">
                 <i class="fas fa-lock" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
-                المنتدى (الشات الخاص) مقفول. يرجى تسجيل الدخول أولاً للمشاركة والتفاعل.
+                منتدى النقاش الحي مقفول. يرجى تسجيل الدخول أولاً للمشاركة والتفاعل اللحظي.
             </div>
         `;
     }
@@ -354,8 +357,7 @@ function renderAdminData() {
     }
 
     renderAdminNotificationsList();
-}
-
+    }
 function renderApprovedTable(approvedList) {
     document.getElementById('approvedUsersTable').innerHTML = approvedList.map(u => `
         <tr>
@@ -403,7 +405,8 @@ function handleRegister() {
     const confirmPassword = document.getElementById('regConfirmPassword').value.trim();
     const whatsapp = document.getElementById('regWhatsapp').value.trim();
     const parent = document.getElementById('regParentPhone').value.trim();
-        if (!fullname || !username || !password || !confirmPassword || !whatsapp || !parent) {
+
+    if (!fullname || !username || !password || !confirmPassword || !whatsapp || !parent) {
         alert("يرجى ملء كافة حقول التسجيل بدقة!"); return;
     }
 
@@ -445,8 +448,11 @@ function addNotification() {
     let now = new Date();
     let timeString = now.toLocaleDateString('ar-EG') + ' - ' + now.toLocaleTimeString('ar-EG');
 
-    notifs.unshift({ id: Date.now(), title, content, time: timeString });
+    let newNotif = { id: Date.now(), title, content, time: timeString };
+    notifs.unshift(newNotif);
     localStorage.setItem('shallan_notifs', JSON.stringify(notifs));
+
+    socket.emit('broadcastNotification', newNotif);
 
     document.getElementById('notifTitle').value = '';
     document.getElementById('notifContent').value = '';
@@ -454,8 +460,18 @@ function addNotification() {
     renderNotifications();
 
     showToast("إشعار جديد تم نشره!", title);
-    alert("تم نشر الإشعار بنجاح!");
+    alert("تم نشر الإشعار بنجاح وإرساله للجميع ليف (Live)!");
 }
+
+socket.on('broadcastNotification', (notif) => {
+    let notifs = JSON.parse(localStorage.getItem('shallan_notifs')) || [];
+    if (!notifs.some(n => n.id === notif.id)) {
+        notifs.unshift(notif);
+        localStorage.setItem('shallan_notifs', JSON.stringify(notifs));
+    }
+    renderNotifications();
+    showToast("إشعار جديد وصلك!", notif.title);
+});
 
 function deleteNotification(id) {
     if (confirm("هل أنت متأكد من حذف هذا الإشعار نهائياً؟")) {
@@ -539,14 +555,15 @@ function renderBooksSection() {
         booksContainer.innerHTML = `
             <div class="grid-single">
                 <div class="item-card text-center">
-                    <h3><i class="fas fa-book"></i> مكتبة الكتب والمذكرات الرسمية</h3>
-                    <p>تصفح وتحميل أحدث المذكرات، الملخصات، والكتب الدراسية بصيغة PDF.</p>
+                    <h3><i class="fas fa-book"></i> مكتبة الكتب والمذكرات الدراسية</h3>
+                    <p>تصفح وتحميل أحدث المذكرات، الملخصات الشاملة، والكتب التعليمية بصيغة PDF.</p>
                     <a href="#" target="_blank" class="btn" style="margin-top:12px; text-decoration:none;"><i class="fas fa-download"></i> تصفح الكتب والمذكرات</a>
                 </div>
             </div>
         `;
     }
 }
+
 function sendChatMessage() {
     const messageText = document.getElementById('chatMessageInput').value.trim();
     const imageInput = document.getElementById('chatImageInput');
@@ -558,85 +575,85 @@ function sendChatMessage() {
 
     let loggedUser = JSON.parse(sessionStorage.getItem('shallan_logged_user'));
     let isAdminOpen = !document.getElementById('adminPanel').classList.contains('hidden');
-    let authorName = isAdminOpen ? "الأستاذ علاء شلال (أدمن)" : (loggedUser ? loggedUser.fullname : "مستخدم");
+    let authorName = isAdminOpen ? "الأستاذ علاء شلال (معلم وأدمن)" : (loggedUser ? loggedUser.fullname : "مستخدم زائر");
     let authorRole = isAdminOpen ? "أدمن" : (loggedUser ? loggedUser.accountType : "زائر");
     let authorGrade = loggedUser && loggedUser.accountType === 'طالب' ? loggedUser.studentGrade : (isAdminOpen ? 'معلم عام' : '');
 
     let now = new Date();
     let timeString = now.toLocaleDateString('ar-EG') + ' - ' + now.toLocaleTimeString('ar-EG');
 
-    const saveToFirestore = (imageUrl = null) => {
-        db.collection("chat_messages").add({
+    const emitMessageData = (imageUrl = null) => {
+        const messageData = {
+            id: 'msg_' + Date.now() + '_' + Math.random().toString(36.2),
             author: authorName,
             role: authorRole,
             grade: authorGrade,
             message: messageText,
             image: imageUrl,
-            time: timeString,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        })
-        .then(() => {
-            document.getElementById('chatMessageInput').value = '';
-            imageInput.value = '';
-            document.getElementById('fileChosenLabel').innerText = "اختر صورة مرفقة";
-            showToast("رسالة جديدة في المنتدى", `${authorName} أضاف رسالة جديدة.`);
-        })
-        .catch((error) => {
-            console.error("خطأ في إرسال الرسالة: ", error);
-            alert("تعذر إرسال الرسالة، تحقق من الإنترنت أو قواعد الأمان.");
-        });
+            time: timeString
+        };
+
+        socket.emit('chatMessage', messageData);
+
+        document.getElementById('chatMessageInput').value = '';
+        imageInput.value = '';
+        document.getElementById('fileChosenLabel').innerText = "اختر صورة مرفقة";
+        showToast("تم النشر في المنتدى", `أرسلت رسالة جديدة بنجاح.`);
     };
 
     if (imageInput.files.length > 0) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            saveToFirestore(e.target.result);
+            emitMessageData(e.target.result);
         };
         reader.readAsDataURL(imageInput.files[0]);
     } else {
-        saveToFirestore(null);
+        emitMessageData(null);
     }
 }
+
+socket.on('chatMessage', (msg) => {
+    let container = document.getElementById('chatMessagesContainer');
+    if (!container) return;
+
+    if (container.innerHTML.includes('لا توجد رسائل في الشات بعد.')) {
+        container.innerHTML = '';
+    }
+
+    let isAdminOpen = !document.getElementById('adminPanel').classList.contains('hidden');
+
+    const msgElement = document.createElement('div');
+    msgElement.id = 'msg_elem_' + msg.id;
+    msgElement.style.cssText = "background: var(--item-bg); border: 1px solid var(--input-border); padding: 12px 15px; border-radius: 12px; margin-bottom: 12px;";
+    
+    msgElement.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div>
+                <span style="font-weight: 700; color: var(--table-th-color); font-size: 0.95rem;"><i class="fas fa-user-circle"></i> ${msg.author}</span>
+                <span style="padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: ${msg.role === 'أدمن' ? '#3b82f6' : (msg.role === 'معلم' ? '#f59e0b' : '#10b981')}; color: white; margin-right: 6px;">${msg.role} ${msg.grade ? '(' + msg.grade + ')' : ''}</span>
+            </div>
+            <small style="color: #0284c7; font-weight: 600; font-size: 0.8rem;"><i class="far fa-clock"></i> ${msg.time}</small>
+        </div>
+        ${msg.message ? `<p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap;">${msg.message}</p>` : ''}
+        ${msg.image ? `<div style="margin-top: 8px;"><img src="${msg.image}" alt="صورة مرفقة" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--input-border); display: block;"></div>` : ''}
+        ${isAdminOpen ? `<div style="text-align: left; margin-top: 8px;"><button class="btn btn-danger btn-sm" onclick="deleteLocalChatMessage('${msg.id}')"><i class="fas fa-trash-alt"></i> حذف الرسالة</button></div>` : ''}
+    `;
+
+    container.insertBefore(msgElement, container.firstChild);
+});
 
 function renderChatMessages() {
     const container = document.getElementById('chatMessagesContainer');
     if (!container) return;
-
-    let isAdminOpen = !document.getElementById('adminPanel').classList.contains('hidden');
-
-    db.collection("chat_messages").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-        let chatMessages = [];
-        snapshot.forEach((doc) => {
-            chatMessages.push({ id: doc.id, ...doc.data() });
-        });
-
-        if (chatMessages.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #888;">لا توجد رسائل في الشات بعد.</p>';
-            return;
-        }
-
-        container.innerHTML = chatMessages.map(m => `
-            <div style="background: var(--item-bg); border: 1px solid var(--input-border); padding: 12px 15px; border-radius: 12px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div>
-                        <span style="font-weight: 700; color: var(--table-th-color); font-size: 0.95rem;"><i class="fas fa-user-circle"></i> ${m.author}</span>
-                        <span style="padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; background: ${m.role === 'أدمن' ? '#3b82f6' : (m.role === 'معلم' ? '#f59e0b' : '#10b981')}; color: white; margin-right: 6px;">${m.role} ${m.grade ? '(' + m.grade + ')' : ''}</span>
-                    </div>
-                    <small style="color: #0284c7; font-weight: 600; font-size: 0.8rem;"><i class="far fa-clock"></i> ${m.time}</small>
-                </div>
-                ${m.message ? `<p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap;">${m.message}</p>` : ''}
-                ${m.image ? `<div style="margin-top: 8px;"><img src="${m.image}" alt="صورة مرفقة" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--input-border); display: block;"></div>` : ''}
-                ${isAdminOpen ? `<div style="text-align: left; margin-top: 8px;"><button class="btn btn-danger btn-sm" onclick="deleteFirebaseChatMessage('${m.id}')"><i class="fas fa-trash-alt"></i> حذف الرسالة</button></div>` : ''}
-            </div>
-        `).join('');
-    });
+    if (!container.innerHTML.trim() || container.innerHTML.includes('مقفول')) {
+        container.innerHTML = '<p style="text-align: center; color: #888;">أهلاً بك في منتدى النقاش الحي، ابدأ بإرسال رسالتك الآن لتظهر للجميع فوراً!</p>';
+    }
 }
 
-function deleteFirebaseChatMessage(id) {
-    if (confirm("هل أنت متأكد من حذف هذه الرسالة من الشات؟")) {
-        db.collection("chat_messages").doc(id).delete().catch((error) => {
-            console.error("خطأ في الحذف: ", error);
-        });
+function deleteLocalChatMessage(id) {
+    if (confirm("هل أنت متأكد من حذف هذه الرسالة من المنتدى الحي؟")) {
+        const elem = document.getElementById('msg_elem_' + id);
+        if (elem) elem.remove();
+        showToast("حذف رسالة", "تمت إزالة الرسالة بنجاح.");
     }
-                }
-            
+            }
