@@ -1,285 +1,129 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الأستاذة أمل شفيق السيد للبرمجة والذكاء الاصطناعي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <!-- مكتبات وتهيئة Socket.io للتواصل اللحظي (Live) -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <!-- ملف الجافا سكريبت الخاص بك -->
-    <script src="script.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة الأستاذة أمل شفيق السيد للبرمجة والذكاء الاصطناعي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style-fix.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script defer src="config.js"></script>
+<script defer src="script.js"></script>
 </head>
 <body>
+<header><div class="header-container">
+ <div class="top-bar">
+  <button class="theme-toggle-btn" onclick="toggleTheme()" title="تغيير المظهر"><i id="themeIcon" class="fas fa-moon"></i></button>
+  <button class="admin-login-btn" onclick="openAdminLoginModal()"><i class="fas fa-user-shield"></i> لوحة الأدمن</button>
+ </div>
+ <div class="logo-area"><i class="fas fa-laptop-code logo-icon"></i>
+  <div><h1>منصة الأستاذة أمل شفيق السيد</h1><p>بوابة لتعليم البرمجة والذكاء الاصطناعي والمشاريع التقنية</p></div></div>
+</div></header>
 
-    <header>
-        <div class="header-container">
-            <div class="top-bar">
-                <button class="theme-toggle-btn" onclick="toggleTheme()" title="تغيير المظهر">
-                    <i id="themeIcon" class="fas fa-moon"></i>
-                </button>
-                <button class="admin-login-btn" onclick="openAdminLoginModal()">
-                    <i class="fas fa-user-shield"></i> لوحة الأدمن
-                </button>
-            </div>
-            <div class="logo-area">
-                <i class="fas fa-laptop-code logo-icon"></i>
-                <div>
-                    <h1>منصة الأستاذة أمل شفيق السيد</h1>
-                    <p>بوابة لتعليم البرمجة والذكاء الاصطناعي والمشاريع التقنية</p>
-                </div>
-            </div>
-        </div>
-    </header>
+<div id="toastNotification" class="toast-notification"><i class="fas fa-bell toast-icon"></i>
+ <div><h4 id="toastTitle"></h4><p id="toastMessage"></p></div></div>
 
-    <!-- عنصر التنبيه المنبثق (Toast Notification) -->
-    <div id="toastNotification" class="toast-notification hidden">
-        <i class="fas fa-bell toast-icon"></i>
-        <div>
-            <h4 id="toastTitle">تنبيه جديد</h4>
-            <p id="toastMessage">هناك محتوى تقني جديد تم نشره على المنصة.</p>
-        </div>
-    </div>
+<div class="container">
+ <div id="adminLoginModal" class="card modal-box hidden" style="border:2px solid #3b82f6;max-width:450px;margin:20px auto">
+  <h2><i class="fas fa-user-shield"></i> تسجيل دخول الأدمن</h2>
+  <div class="form-group"><label>اسم المستخدم</label><input type="text" id="adminNameInput"></div>
+  <div class="form-group"><label>كلمة المرور</label><input type="password" id="adminPassInput"></div>
+  <div style="display:flex;gap:10px;margin-top:15px">
+   <button class="btn btn-success" onclick="verifyAdminLogin()" style="flex:1">دخول</button>
+   <button class="btn btn-danger" onclick="closeAdminLoginModal()" style="flex:1">إلغاء</button></div>
+ </div>
 
-    <div class="container">
+ <div class="card intro-card" style="padding:15px 20px"><h3 style="color:var(--table-th-color)"><i class="fas fa-robot"></i> عن المنصة التقنية</h3>
+  <p style="font-size:.9rem">بوابة رقمية لتعلم البرمجة والذكاء الاصطناعي، مع إشعارات فورية ومنتدى نقاش حي.</p></div>
 
-        <!-- نافذة تسجيل دخول الأدمن (Modal) -->
-        <div id="adminLoginModal" class="card modal-box hidden" style="border: 2px solid #3b82f6; max-width: 450px; margin: 20px auto;">
-            <h2><i class="fas fa-user-shield"></i> تسجيل دخول المسؤول (الأدمن)</h2>
-            <div class="form-group">
-                <label>اسم المسؤول (Admin Name)</label>
-                <input type="text" id="adminNameInput" placeholder="أدخل اسم الأدمن (مثال: أمل شفيق)">
-            </div>
-            <div class="form-group">
-                <label>كلمة المرور الموحدة</label>
-                <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-success" onclick="verifyAdminLogin()" style="flex: 1;"><i class="fas fa-check-circle"></i> دخول اللوحة</button>
-                <button class="btn btn-danger" onclick="closeAdminLoginModal()" style="flex: 1;"><i class="fas fa-times-circle"></i> إلغاء</button>
-            </div>
-        </div>
+ <div id="adminPanel" class="card admin-box hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+   <h2><i class="fas fa-user-shield"></i> لوحة الأدمن (<span id="currentAdminTitle"></span>)</h2>
+   <button class="btn btn-danger" onclick="logoutAdmin()">إغلاق اللوحة</button></div>
+  <div class="stats-grid">
+   <div class="stat-card"><h3 id="statApprovedCount">0</h3><p>المستخدمين المقبولين</p></div>
+   <div class="stat-card"><h3 id="statPendingCount">0</h3><p>الطلبات المعلقة</p></div></div>
+  <h3>طلبات الانضمام</h3>
+  <div style="overflow-x:auto"><table><thead><tr><th>الاسم</th><th>نوع الحساب</th><th>المستوى</th><th>اسم المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pendingUsersTable"></tbody></table></div>
+  <h3 style="margin-top:25px">المستخدمون (مرتبون أبجدياً)</h3>
+  <div class="form-group" style="margin-top:10px"><input type="text" id="searchStudentInput" oninput="filterApprovedStudents()" placeholder="ابحث بالاسم أو اسم المستخدم..."></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>الاسم</th><th>نوع الحساب</th><th>المستوى</th><th>اسم المستخدم</th><th>الحماية</th><th>الإجراء</th></tr></thead><tbody id="approvedUsersTable"></tbody></table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:25px"><h3>سجل النشاطات</h3>
+   <button class="btn btn-danger btn-sm" onclick="clearActivityLogs()">مسح السجل</button></div>
+  <div style="overflow-x:auto;margin-top:10px"><table><thead><tr><th>المستخدم</th><th>الصلاحية</th><th>الإجراء</th><th>الوقت</th></tr></thead><tbody id="activityLogsTable"></tbody></table></div>
+  <h3 style="margin-top:25px">نشر إشعار جديد</h3>
+  <div class="form-group"><input type="text" id="notifTitle" placeholder="عنوان الإشعار"></div>
+  <div class="form-group"><textarea id="notifContent" rows="3" placeholder="التفاصيل..."></textarea></div>
+  <button class="btn btn-success" onclick="addNotification()"><i class="fas fa-paper-plane"></i> نشر (Live)</button>
+  <h3 style="margin-top:30px">إدارة الإشعارات</h3>
+  <div id="adminNotificationsList" style="margin-top:10px"></div>
+ </div>
 
-        <!-- المقدمة المصغرة والاحترافية -->
-        <div class="card intro-card" style="padding: 15px 20px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <i class="fas fa-robot" style="font-size: 1.8rem; color: #00f2fe;"></i>
-                <div>
-                    <h3 style="font-size: 1.1rem; color: var(--table-th-color); margin-bottom: 2px;">عن المنصة التقنية</h3>
-                    <p style="font-size: 0.9rem; opacity: 0.9;">بوابة رقمية متكاملة لتعلم البرمجة، خوارزميات الذكاء الاصطناعي، الإشعارات الفورية، المشاريع، ومنتدى النقاش الحي.</p>
-                </div>
-            </div>
-        </div>
+ <div id="studentWelcomeCard" class="card hidden" style="border:2px solid #10b981">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px">
+   <div><h2 style="margin-bottom:5px">أهلاً بك يا <span id="welcomeStudentName"></span> (<span id="welcomeRoleSpan"></span>)</h2><p id="welcomeGradeP"></p></div>
+   <div style="display:flex;gap:10px">
+    <button class="btn" onclick="openProfileModal()"><i class="fas fa-id-card"></i> الملف الشخصي</button>
+    <button class="btn btn-danger" onclick="studentLogout()"><i class="fas fa-sign-out-alt"></i> خروج</button></div></div>
+ </div>
 
-        <!-- لوحة تحكم الأدمن -->
-        <div id="adminPanel" class="card admin-box hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2><i class="fas fa-user-shield"></i> لوحة تحكم الأدمن (<span id="currentAdminTitle"></span>)</h2>
-                <button class="btn btn-danger" onclick="logoutAdmin()"><i class="fas fa-sign-out-alt"></i> إغلاق اللوحة</button>
-            </div>
+ <div id="profileModal" class="card modal-box hidden" style="border:2px solid #0284c7;max-width:550px;margin:20px auto">
+  <h2><i class="fas fa-user-circle"></i> ملفي التقني</h2>
+  <div class="form-group"><label>الاسم</label><input type="text" id="profileFullname" disabled></div>
+  <div class="form-group"><label>نوع الحساب</label><input type="text" id="profileAccountType" disabled></div>
+  <div class="form-group" id="profileGradeGroup"><label>المستوى</label><input type="text" id="profileGrade" disabled></div>
+  <div class="form-group"><label>اسم المستخدم</label><input type="text" id="profileUsername" disabled></div>
+  <div class="form-group"><label>رقم الواتساب</label><input type="text" id="profileWhatsapp" maxlength="11"></div>
+  <div class="form-group"><label>رقم ولي الأمر</label><input type="text" id="profileParent" maxlength="11"></div>
+  <div class="form-group"><label>كلمة مرور جديدة (اختياري)</label><input type="password" id="profileNewPass"></div>
+  <div style="display:flex;gap:10px">
+   <button class="btn btn-success" onclick="saveProfileChanges()" style="flex:1">حفظ</button>
+   <button class="btn btn-danger" onclick="closeProfileModal()" style="flex:1">إغلاق</button></div>
+ </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="statApprovedCount">0</h3>
-                    <p>المستخدمين المقبولين</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="statPendingCount">0</h3>
-                    <p>الطلبات المعلقة</p>
-                </div>
-            </div>
+ <div class="card"><h2><i class="fas fa-bell"></i> أحدث الإشعارات</h2><div id="notificationsContainer"></div></div>
+ <div class="card"><h2><i class="fas fa-book-open"></i> مكتبة المسارات</h2><div id="booksContainer"></div></div>
 
-            <h3><i class="fas fa-user-clock"></i> طلبات الانضمام المعلقة</h3>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>الاسم</th><th>نوع الحساب</th><th>المستوى التقني</th><th>اسم المستخدم</th><th>الإجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingUsersTable"></tbody>
-                </table>
-            </div>
+ <div class="card" id="forumSection">
+  <h2><i class="fas fa-comments"></i> منتدى النقاش الحي</h2>
+  <div id="chatBox" class="hidden" style="background:var(--input-bg);padding:15px;border-radius:12px;border:1px solid var(--input-border);margin-bottom:20px">
+   <textarea id="chatMessageInput" rows="3" placeholder="اكتب رسالتك أو كودك هنا..." style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--input-border);background:var(--bg-color);color:var(--text-color);margin-bottom:10px"></textarea>
+   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <label style="background:#0284c7;color:#fff;padding:8px 14px;border-radius:8px;font-size:.9rem"><i class="fas fa-image"></i> <span id="fileChosenLabel">اختر صورة</span>
+     <input type="file" id="chatImageInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="updateFileName(this)"></label>
+    <button class="btn" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i> إرسال</button></div></div>
+  <div id="chatMessagesContainer" style="max-height:450px;overflow-y:auto"></div>
+ </div>
 
-            <h3 style="margin-top: 25px;"><i class="fas fa-users-check"></i> قائمة المطورين والمستخدمين (مرتبة أبجدياً)</h3>
-            <div class="form-group" style="margin-top: 10px;">
-                <input type="text" id="searchStudentInput" oninput="filterApprovedStudents()" placeholder="ابحث بالاسم أو اسم المستخدم...">
-            </div>
+ <div class="card" id="authSection">
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+   <button class="btn" id="loginTabBtn" onclick="switchAuthTab('login')" style="flex:1">تسجيل الدخول</button>
+   <button class="btn" id="regTabBtn" onclick="switchAuthTab('register')" style="flex:1;background:rgba(30,60,114,.4)">إنشاء حساب</button></div>
+  <div id="loginFormContainer">
+   <div class="form-group"><label>اسم المستخدم</label><input type="text" id="loginUsername"></div>
+   <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPassword"></div>
+   <button class="btn btn-success" onclick="handleLogin()">دخول</button></div>
+  <div id="registerFormContainer" class="hidden">
+   <div class="form-group"><label>الاسم بالكامل</label><input type="text" id="regFullname"></div>
+   <div class="form-group"><label>نوع الحساب</label><select id="regAccountType" onchange="toggleGradeSelection()"><option value="طالب">طالب / مبرمج</option><option value="معلم">معلم / مدرب</option></select></div>
+   <div class="form-group" id="gradeSelectionGroup"><label>المستوى التقني</label><select id="regStudentGrade"><option>مبتدئ في البرمجة</option><option>متوسط (تطوير ومشاريع)</option><option>متقدم (ذكاء اصطناعي وأنظمة)</option></select></div>
+   <div class="form-group"><label>اسم المستخدم (إنجليزي/أرقام/_ من 5 إلى 15)</label><input type="text" id="regUsername"></div>
+   <div class="form-group"><label>كلمة المرور (6 أحرف على الأقل)</label><input type="password" id="regPassword"></div>
+   <div class="form-group"><label>تأكيد كلمة المرور</label><input type="password" id="regConfirmPassword"></div>
+   <div class="con-group">
+    <div class="form-group"><label>رقم الواتساب</label><input type="text" id="regWhatsapp" maxlength="11" placeholder="010xxxxxxxx"></div>
+    <div class="form-group"><label>رقم ولي الأمر</label><input type="text" id="regParentPhone" maxlength="11" placeholder="010xxxxxxxx"></div></div>
+   <button class="btn btn-success" onclick="handleRegister()">إرسال طلب الانضمام</button></div>
+ </div>
+</div>
 
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>الاسم</th><th>نوع الحساب</th><th>المستوى/التخصص</th><th>اسم المستخدم</th><th>الحماية</th><th>الإجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody id="approvedUsersTable"></tbody>
-                </table>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
-                <h3><i class="fas fa-history"></i> سجل النشاطات</h3>
-                <button class="btn btn-danger btn-sm" onclick="clearActivityLogs()"><i class="fas fa-trash-alt"></i> مسح السجل</button>
-            </div>
-            <div style="overflow-x:auto; margin-top: 10px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>المستخدم</th><th>الصلاحية</th><th>الإجراء</th><th>التاريخ والوقت</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activityLogsTable"></tbody>
-                </table>
-            </div>
-
-            <h3 style="margin-top: 25px;"><i class="fas fa-bullhorn"></i> نشر إشعار تقني جديد</h3>
-            <div class="form-group"><input type="text" id="notifTitle" placeholder="عنوان الإشعار"></div>
-            <div class="form-group"><textarea id="notifContent" rows="3" placeholder="تفاصيل الإشعار البرمجي أو الذكاء الاصطناعي..."></textarea></div>
-            <button class="btn btn-success" onclick="addNotification()"><i class="fas fa-paper-plane"></i> نشر (Live)</button>
-
-            <h3 style="margin-top: 30px;"><i class="fas fa-tasks"></i> إدارة وحذف وتعديل الإشعارات</h3>
-            <div id="adminNotificationsList" style="margin-top: 10px;"></div>
-        </div>
-
-        <!-- بطاقة ترحيب المستخدم والملف الشخصي عند تسجيل الدخول -->
-        <div id="studentWelcomeCard" class="card hidden" style="border: 2px solid #10b981; background: var(--welcome-bg, #ecfdf5);">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h2 style="color: #065f46; margin-bottom: 5px;"><i class="fas fa-user-check"></i> أهلاً بك يا <span id="welcomeStudentName"></span> (<span id="welcomeRoleSpan"></span>)</h2>
-                    <p id="welcomeGradeP" style="color: #047857; font-weight: 600;"></p>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" onclick="openProfileModal()" style="background: #0284c7;"><i class="fas fa-id-card"></i> الملف الشخصي</button>
-                    <button class="btn btn-danger" onclick="studentLogout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- نافذة الملف الشخصي (Profile Modal) -->
-        <div id="profileModal" class="card modal-box hidden" style="border: 2px solid #0284c7; max-width: 550px; margin: 20px auto;">
-            <h2><i class="fas fa-user-circle"></i> ملفي التقني بالمنصة</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                <div class="form-group"><label>الاسم بالكامل</label><input type="text" id="profileFullname" disabled></div>
-                <div class="form-group"><label>نوع الحساب</label><input type="text" id="profileAccountType" disabled></div>
-                <div class="form-group" id="profileGradeGroup"><label>المستوى التقني / التخصص</label><input type="text" id="profileGrade" disabled></div>
-                <div class="form-group"><label>اسم المستخدم</label><input type="text" id="profileUsername" disabled></div>
-                <div class="form-group"><label>رقم الواتساب</label><input type="text" id="profileWhatsapp" maxlength="11"></div>
-                <div class="form-group"><label>رقم ولي الأمر</label><input type="text" id="profileParent" maxlength="11"></div>
-                <div class="form-group"><label>كلمة المرور الجديدة (اختياري)</label><input type="password" id="profileNewPass" placeholder="اتركه فارغاً إذا لم ترد التغيير"></div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-success" onclick="saveProfileChanges()" style="flex: 1;"><i class="fas fa-save"></i> حفظ التعديلات</button>
-                <button class="btn btn-danger" onclick="closeProfileModal()" style="flex: 1;"><i class="fas fa-times-circle"></i> إغلاق</button>
-            </div>
-        </div>
-
-        <!-- قسم الإشعارات -->
-        <div class="card" id="notificationsCard">
-            <h2><i class="fas fa-bell"></i> أحدث الإشعارات والتنبيهات البرمجية</h2>
-            <div id="notificationsContainer"></div>
-        </div>
-
-        <!-- قسم الكتب والمذكرات الدراسية (البرمجة والذكاء الاصطناعي) -->
-        <div class="card" id="booksCard">
-            <h2><i class="fas fa-book-open"></i> مكتبة مسارات البرمجة والذكاء الاصطناعي</h2>
-            <div id="booksContainer"></div>
-        </div>
-
-        <!-- قسم المنتدى التعليمي الخاص (شات مباشر ومناقشات لايف) -->
-        <div class="card" id="forumSection" style="margin-top: 30px;">
-            <div class="item-card" style="padding: 0; border: none; background: transparent;">
-                <h2 style="color: var(--table-th-color); margin-bottom: 10px;">
-                    <i class="fas fa-comments"></i> منتدى النقاش الحي والتفاعل البرمجي
-                </h2>
-                <p style="color: #666; margin-bottom: 20px;">
-                    شارك أفكارك البرمجية، اسأل عن الأكواد والذكاء الاصطناعي، وتفاعل لحظياً (Live) مع زملائك ومعلمتك الأستاذة أمل شفيق!
-                </p>
-
-                <!-- صندوق كتابة وإرسال الرسائل والصور -->
-                <div style="background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--input-border); margin-bottom: 20px;">
-                    <textarea id="chatMessageInput" rows="3" placeholder="اكتب رسالتك أو كودك أو استفسارك هنا..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color); resize: vertical; margin-bottom: 10px;"></textarea>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <label style="cursor: pointer; background: #0284c7; color: white; padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;">
-                            <i class="fas fa-image"></i> <span id="fileChosenLabel">اختر صورة مرفقة</span>
-                            <input type="file" id="chatImageInput" accept="image/*" style="display: none;" onchange="updateFileName(this)">
-                        </label>
-                        
-                        <button class="btn" onclick="sendChatMessage()" style="padding: 8px 20px;"><i class="fas fa-paper-plane"></i> إرسال مباشر (Live)</button>
-                    </div>
-                </div>
-
-                <!-- حاوية ظهور الرسائل اللحظية -->
-                <div id="chatMessagesContainer" style="max-height: 450px; overflow-y: auto; padding-right: 5px;">
-                    <!-- يتم تعبئة الرسائل هنا ديناميكياً -->
-                </div>
-            </div>
-        </div>
-
-        <!-- قسم الحسابات: تسجيل الدخول أو إنشاء حساب -->
-        <div class="card" id="authSection">
-            <div class="tab-buttons" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn" id="loginTabBtn" onclick="switchAuthTab('login')" style="flex:1;">تسجيل الدخول</button>
-                <button class="btn" id="regTabBtn" onclick="switchAuthTab('register')" style="flex:1; background: rgba(30, 60, 114, 0.4);">إنشاء حساب جديد</button>
-            </div>
-
-            <!-- نموذج تسجيل الدخول -->
-            <div id="loginFormContainer">
-                <h2><i class="fas fa-sign-in-alt"></i> تسجيل الدخول للمنصة</h2>
-                <div class="form-group">
-                    <label>اسم المستخدم (Username)</label>
-                    <input type="text" id="loginUsername" placeholder="أدخل اسم المستخدم">
-                </div>
-                <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPassword" placeholder="أدخل كلمة المرور"></div>
-                <button class="btn btn-success" onclick="handleLogin()"><i class="fas fa-check-circle"></i> دخول</button>
-            </div>
-
-            <!-- نموذج إنشاء حساب جديد -->
-            <div id="registerFormContainer" class="hidden">
-                <h2><i class="fas fa-user-plus"></i> انضم إلى مجتمع البرمجة والذكاء الاصطناعي</h2>
-                <div class="form-group"><label>الاسم بالكامل</label><input type="text" id="regFullname" placeholder="الاسم ثلاثي أو رباعي"></div>
-                <div class="form-group">
-                    <label>نوع الحساب</label>
-                    <select id="regAccountType" onchange="toggleGradeSelection()" style="width: 100%; padding: 10px; border-radius: 10px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border);">
-                        <option value="طالب">طالب / مبرمج</option>
-                        <option value="معلم">معلم / مدرب</option>
-                    </select>
-                </div>
-                <div class="form-group" id="gradeSelectionGroup">
-                    <label>المستوى التقني / التخصص</label>
-                    <select id="regStudentGrade" style="width: 100%; padding: 10px; border-radius: 10px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border);">
-                        <option value="مبتدئ في البرمجة">مبتدئ في البرمجة</option>
-                        <option value="متوسط (تطوير ومشاريع)">متوسط (تطوير ومشاريع)</option>
-                        <option value="متقدم (ذكاء اصطناعي وأنظمة)">متقدم (ذكاء اصطناعي وأنظمة)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>اسم المستخدم (Username)</label>
-                    <input type="text" id="regUsername" placeholder="أدخل اسم مستخدم (حروف، أرقام)">
-                </div>
-                <div class="form-group"><label>كلمة المرور</label><input type="password" id="regPassword" placeholder="كلمة المرور"></div>
-                <div class="form-group"><label>تأكيد كلمة المرور</label><input type="password" id="regConfirmPassword" placeholder="أعد إدخال كلمة المرور"></div>
-                <div class="con-group">
-                    <div class="form-group"><label>رقم الواتساب</label><input type="text" id="regWhatsapp" maxlength="11" placeholder="010xxxxxxxxx"></div>
-                    <div class="form-group"><label>رقم ولي الأمر</label><input type="text" id="regParentPhone" maxlength="11" placeholder="010xxxxxxxxx"></div>
-                </div>
-                <button class="btn btn-success" onclick="handleRegister()"><i class="fas fa-paper-plane"></i> إرسال طلب الانضمام</button>
-            </div>
-        </div>
-    </div>
-
-    <footer>
-        <div class="footer-content">
-            <h3>منصة الأستاذة أمل شفيق السيد للبرمجة والذكاء الاصطناعي</h3>
-            <p class="footer-rights"><i class="far fa-copyright"></i> جميع الحقوق محفوظة © 2026</p>
-            <p class="footer-dev">تم الإعداد والتطوير بواسطة <strong>أحمد صبري</strong></p>
-            <a href="https://wa.me/201287255571" target="_blank" class="mini-wa-btn">
-                <i class="fab fa-whatsapp"></i> تواصل عبر الواتساب
-            </a>
-        </div>
-    </footer>
+<footer><div class="footer-content">
+ <h3>منصة الأستاذة أمل شفيق السيد للبرمجة والذكاء الاصطناعي</h3>
+ <p class="footer-rights">جميع الحقوق محفوظة © 2026</p>
+ <p class="footer-dev">تم الإعداد والتطوير بواسطة <strong>أحمد صبري</strong></p>
+ <a href="https://wa.me/201287255571" target="_blank" rel="noopener" class="mini-wa-btn"><i class="fab fa-whatsapp"></i> تواصل عبر الواتساب</a>
+</div></footer>
 </body>
-                                                                                        </html>
-                                                                                        
+</html>
